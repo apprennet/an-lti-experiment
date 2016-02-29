@@ -1,0 +1,22 @@
+{
+  "name": "express-base",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon --exec babel-node index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.15.0",
+    "cookie-parser": "^1.4.1",
+    "express": "^4.13.4",
+    "express-handlebars": "^3.0.0"
+  },
+  "devDependencies": {
+    "babel-preset-es2015": "^6.5.0",
+    "babel-preset-stage-0": "^6.5.0"
+  }
+}
