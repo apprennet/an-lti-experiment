@@ -52,6 +52,8 @@ app.post('/launch', (req, res) => {
       return res.status(500).send(err);
     }
 
+    // If set up to receive grades, immediately populate a grade.
+    // In real life, this would be triggered by some event later.
     if (provider.outcome_service) {
       provider.outcome_service.send_replace_result(.7, (err, result) => {
         if (err) {
