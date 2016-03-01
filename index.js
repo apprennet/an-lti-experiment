@@ -2,7 +2,7 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import exphbs from 'express-handlebars';
-import lti from 'ims-lti';
+import lti, { OutcomeService } from 'ims-lti';
 
 var app = express();
 
@@ -55,7 +55,14 @@ app.post('/launch', (req, res) => {
     // If set up to receive grades, immediately populate a grade.
     // In real life, this would be triggered by some event later.
     if (provider.outcome_service) {
-      provider.outcome_service.send_replace_result(.7, (err, result) => {
+      const outcomeService = new OutcomeService({
+        consumer_key: key,
+        consumer_secret: consumer.secret,
+        service_url: provider.body.lis_outcome_service_url,
+        source_did: provider.body.lis_result_sourcedid,
+      });
+
+      outcomeService.send_replace_result(.7, (err, result) => {
         if (err) {
           console.log(`Error posting result ${err}`);
         }
