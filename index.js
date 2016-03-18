@@ -30,6 +30,7 @@ app.get('/page', (req, res) => {
   res.render('page', {value: 'test'})
 });
 
+// Mock consumers. These would be stored as an entity in the database.
 const ltiConsumers = {
   123: {
     key: '123',
