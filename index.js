@@ -96,7 +96,7 @@ app.get('/', (req, res) => {
     context_id: "S3294476"
   }
   // This process is taken from https://github.com/omsmith/ims-lti/blob/master/src/hmac-sha1.coffee#L47
-  const cleanedRequestBody = _clean_request_body(baseParams, baseParams);
+  const cleanedRequestBody = _clean_request_body(baseParams);
   const req_url = req.protocol + '://' + req.get('host') + req.originalUrl + 'query';
   var sig = ["GET", utils.special_encode(req_url), cleanedRequestBody];
   var oauth_signature = signer.sign_string(sig.join('&'), 'sekret', null);
@@ -113,17 +113,22 @@ app.get('/query', (req, res) => {
     return res.status(500).send('consumer not recognized');
   }
 
-  _validOAuthSignature(req, consumer.secret);
+  let isValid = _validOAuthSignature(req, consumer.secret);
 
-  let provider = new lti.Provider(key, consumer.secret);
+  if (isValid) {
+    return res.json({result: 'worked', context_id: req.query.context_id});
+  }
+
+  return res.status(500).send('invalid signature');
+  // let provider = new lti.Provider(key, consumer.secret);
 
   // NOTE: Using a private method from ims-lti library (https://github.com/omsmith/ims-lti/blob/master/src/provider.coffee#L53) to skip LTI parameter validation (https://github.com/omsmith/ims-lti/blob/master/src/provider.coffee#L44)
-  provider._valid_oauth(req, req.query, (err, isValid) => {
-    if (err) {
-      return res.status(500).send(err);
-    }
-    return res.json({result: 'worked', context_id: req.query.context_id});
-  });
+  // provider._valid_oauth(req, {}, (err, isValid) => {
+  //   if (err) {
+  //     return res.status(500).send(err);
+  //   }
+  //   return res.json({result: 'worked', context_id: req.query.context_id});
+  // });
 });
 
 // 404s
@@ -202,5 +207,5 @@ function _validOAuthSignature(req, secret) {
 }
 
 function _getAbsolutePath(req) {
-  return `${req.protocol}://${req.hostname}:${SERVER_PORT}${req.path}`;
+  return `${req.protocol}://${req.get('host')}${req.path}`;
 }
