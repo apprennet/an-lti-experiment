@@ -7,6 +7,10 @@ import HMAC_SHA1 from 'ims-lti/lib/hmac-sha1';
 import utils from 'ims-lti/lib/utils';
 import url from 'url';
 
+import OAuthSignature from 'oauth-signature';
+
+const SERVER_PORT = 8082;
+
 var app = express();
 
 // static files
@@ -46,6 +50,8 @@ app.post('/launch', (req, res) => {
     return res.status(500).send('consumer not recognized');
   }
 
+  _validOAuthSignature(req, consumer.secret);
+
   let provider = new lti.Provider(key, consumer.secret);
 
   provider.valid_request(req, (err, isValid) => {
@@ -72,6 +78,7 @@ app.post('/launch', (req, res) => {
       })
     }
 
+    console.log('provider.valid_request SUCCESS');
     return res.json(req.body)
   });
 });
@@ -106,6 +113,8 @@ app.get('/query', (req, res) => {
     return res.status(500).send('consumer not recognized');
   }
 
+  _validOAuthSignature(req, consumer.secret);
+
   let provider = new lti.Provider(key, consumer.secret);
 
   // NOTE: Using a private method from ims-lti library (https://github.com/omsmith/ims-lti/blob/master/src/provider.coffee#L53) to skip LTI parameter validation (https://github.com/omsmith/ims-lti/blob/master/src/provider.coffee#L44)
@@ -128,7 +137,7 @@ app.use((err, req, res, next) => {
   res.status(500).send('500 :('  + err.stack);
 });
 
-app.listen(8082);
+app.listen(SERVER_PORT);
 
 
 // Taken from https://github.com/omsmith/ims-lti/blob/master/src/hmac-sha1.coffee#L14
@@ -162,3 +171,36 @@ function _clean_request_body(body, query) {
   cleanParams(query);
   return utils.special_encode(out.sort().join('&'));
 };
+
+function _validOAuthSignature(req, secret) {
+  let method = req.method;
+  console.log(`method = ${method}`);
+
+  let absolutePath = _getAbsolutePath(req);
+  console.log(`absolutePath = ${absolutePath}`);
+
+  let params = method === 'POST' ? {... req.query, ... req.body} : req.query;
+  let suppliedSignature = params.oauth_signature;
+  delete params.oauth_signature;
+  console.log('params = ' + JSON.stringify(params, null, 2));
+
+  console.log(`secret = ${secret}`);
+
+  let generatedSignature = OAuthSignature.generate(
+    method,
+    absolutePath,
+    params,
+    secret,
+    undefined,
+    { encodeSignature: false }
+  );
+
+  console.log(`>>  suppliedSignature: ${suppliedSignature}`);
+  console.log(`>> generatedSignature: ${generatedSignature}`);
+  console.log(`Signatures ${suppliedSignature === generatedSignature ? 'MATCH! SUCCESS :)' : 'DO NOT MATCH! FAIL :('}`);
+  return suppliedSignature === generatedSignature;
+}
+
+function _getAbsolutePath(req) {
+  return `${req.protocol}://${req.hostname}:${SERVER_PORT}${req.path}`;
+}
